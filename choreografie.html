@@ -1,0 +1,1426 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Choreografie</title>
+<style>
+:root{--bg:#f4f2fa;--panel:#fff;--line:#e2ddf0;--text:#241f35;--muted:#7a7390;--acc:#7c4dff;--acc2:#ede7ff;--danger:#e5484d}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--text);background:var(--bg)}
+body{display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{font-weight:700;font-size:17px;margin-right:10px}
+.tabs{display:flex;gap:4px}
+.tabs button{border:0;background:transparent;padding:8px 18px;border-radius:8px;font-weight:600;font-size:15px;color:var(--muted)}
+.tabs button.active{background:var(--acc);color:#fff}
+.spacer,.grow{flex:1}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 10px;color:var(--text)}
+button:hover:not(:disabled){border-color:var(--acc)}
+button.primary{background:var(--acc);color:#fff;border-color:var(--acc)}
+button.danger{color:var(--danger)}
+button:disabled{opacity:.4;cursor:default}
+button.mini{padding:0 5px;font-size:11px;line-height:18px;border-radius:5px}
+input[type=text],input[type=number],select{font:inherit;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:#fff;color:var(--text)}
+input[type=color]{width:30px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer}
+label.chk{display:inline-flex;align-items:center;gap:4px;cursor:pointer;user-select:none}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+main{flex:1;min-height:0;position:relative}
+.tab{display:none;height:100%}
+.tab.active{display:flex}
+#tab-people.active{display:block;overflow:auto;padding:16px 20px}
+.side{width:240px;flex:none;background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:10px}
+.side-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.side-head h3{margin:0;font-size:15px}
+.list{list-style:none;margin:0;padding:0}
+.list li{display:flex;align-items:center;gap:6px;padding:7px 8px;border-radius:8px;cursor:pointer;border:1px solid transparent}
+.list li:hover{background:#f7f5fd}
+.list li.active{background:var(--acc2);border-color:#cfc2ff}
+.list .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.list .meta{font-size:11px;color:var(--muted);white-space:nowrap}
+.list .sw{width:12px;height:12px;border-radius:3px;flex:none}
+.list .acts{display:none;gap:2px}
+.list li:hover .acts,.list li.active .acts{display:flex}
+.list .empty{color:var(--muted);cursor:default;font-size:13px}
+.work{flex:1;min-width:0;display:flex;flex-direction:column}
+.toolbar,.framebar,.transbar,.transport{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--panel);flex-wrap:wrap}
+.toolbar{border-bottom:1px solid var(--line)}
+.framebar{border-top:1px solid var(--line)}
+.transbar{background:#fff7d6;border-bottom:1px solid #f0e0a0}
+.transbar[hidden]{display:none}
+.sep{width:1px;height:22px;background:var(--line)}
+.stage-wrap{flex:1;min-height:160px;position:relative;background:#2a2440}
+.stage-wrap canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+.stage-hint{position:absolute;left:10px;right:10px;top:7px;color:#e4def8;font-size:12px;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frames{display:flex;gap:4px;flex-wrap:wrap}
+.frames button{min-width:40px;font-weight:600}
+.frames button.active{background:var(--acc);border-color:var(--acc);color:#fff}
+.frames button.dirty::after{content:" ●";color:#ffcf40}
+.seq{display:flex;align-items:center;gap:4px;padding:6px 10px;background:var(--panel);border-top:1px solid var(--line);overflow-x:auto;white-space:nowrap;min-height:42px}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 4px 3px 9px;border-radius:14px;background:var(--c,#ddd6ee);cursor:pointer;border:2px solid transparent;flex:none}
+.chip.trans{background:repeating-linear-gradient(45deg,#e8e3f5,#e8e3f5 6px,#d9d1ee 6px,#d9d1ee 12px)}
+.chip.sel{border-color:var(--acc)}
+.chip .nm{font-weight:600}
+.chip .d{font-size:11px;color:#3d3556;margin-right:2px}
+.chip .mini{background:rgba(255,255,255,.7);border-color:transparent}
+.addtrans{font-size:11px;padding:2px 6px;border-style:dashed;border-radius:12px;flex:none}
+.arrow{color:var(--muted);flex:none}
+.transport{border-top:1px solid var(--line)}
+.transport .play{min-width:46px}
+.time{font-variant-numeric:tabular-nums;font-weight:600;min-width:140px}
+.tl-scroll{flex:none;overflow-x:auto;overflow-y:hidden;background:#fff;border-top:1px solid var(--line)}
+.tl-inner{height:142px;position:relative}
+.tl-inner canvas{position:sticky;left:0;top:0;display:block}
+.people-head{display:flex;align-items:flex-start;gap:16px;margin-bottom:12px}
+.people-head h2{margin:0 0 2px}
+.people-head p{margin:0}
+.groups{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;width:300px;box-shadow:0 1px 3px rgba(40,20,90,.05)}
+.card-head{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.card-head input{flex:1;font-weight:700}
+.count{font-size:12px;color:var(--muted)}
+.people{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-direction:column;gap:4px}
+.people li{display:flex;gap:6px;align-items:center}
+.people li input.pname{flex:1;padding:4px 8px}
+.addPerson{display:flex;gap:6px}
+.addPerson input{flex:1;min-width:0}
+.howto{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:14px;max-width:940px}
+.howto ol{margin:4px 0;padding-left:20px}
+#modal{position:fixed;inset:0;background:rgba(20,10,40,.45);display:flex;align-items:center;justify-content:center;z-index:50}
+#modal[hidden]{display:none}
+#modalBox{background:#fff;border-radius:14px;padding:18px 20px;max-width:min(640px,94vw);max-height:88vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.25);min-width:320px}
+#modalBox h3{margin-top:0}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.pick fieldset{border:1px solid var(--line);border-radius:10px;margin:0 0 10px;padding:6px 10px 10px}
+.pick legend{font-weight:700;padding:0 4px}
+.pick .pp{display:inline-flex;align-items:center;gap:5px;margin:3px 12px 3px 0;cursor:pointer}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+progress{width:100%;height:16px}
+.formrow{display:flex;gap:10px;align-items:center;margin:8px 0}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">💃 Choreografie</div>
+  <nav class="tabs">
+    <button data-tab="people" class="active">Lidičky</button>
+    <button data-tab="sets">Prvky</button>
+    <button data-tab="dance">Tanec</button>
+  </nav>
+  <div class="spacer"></div>
+  <button id="undoBtn" title="Zpět (Ctrl+Z)">↶ Zpět</button>
+  <button id="redoBtn" title="Znovu (Ctrl+Y)">↷</button>
+  <button id="saveFileBtn" title="Uloží celý projekt do souboru .json">💾 Uložit projekt</button>
+  <button id="openFileBtn" title="Otevře projekt ze souboru .json">📂 Otevřít projekt</button>
+  <input type="file" id="openFileInput" accept=".json,application/json" hidden>
+</header>
+
+<main>
+  <!-- ============ LIDIČKY ============ -->
+  <section id="tab-people" class="tab active">
+    <div class="howto">
+      <b>Jak na to:</b>
+      <ol>
+        <li><b>Lidičky</b> – vytvořte skupiny a napište do nich jména tanečníků (víc jmen najednou oddělte čárkou).</li>
+        <li><b>Prvky</b> – vytvořte prvek, přidejte lidi, rozestavte je (snímek <i>Start</i>). Tlačítkem <b>+</b> přidejte snímek, táhněte kuličky po cestě a klikněte <b>Použít</b>.</li>
+        <li><b>Tanec</b> – poskládejte prvky za sebe, vložte přechody, nahrajte hudbu a roztáhněte bloky na časové ose podle hudby. Pak <b>Export</b>.</li>
+      </ol>
+      <span class="muted small">Vše se průběžně ukládá v tomto prohlížeči. Pro jistotu občas klikněte na „Uložit projekt“ (soubor .json si můžete přenést i na jiný počítač).</span>
+    </div>
+    <div class="people-head">
+      <div><h2>Lidičky</h2><p class="muted">Skupiny a jejich tanečníci.</p></div>
+      <button class="primary" id="addGroupBtn">+ Nová skupina</button>
+    </div>
+    <div id="groupsList" class="groups"></div>
+  </section>
+
+  <!-- ============ PRVKY ============ -->
+  <section id="tab-sets" class="tab">
+    <aside class="side">
+      <div class="side-head"><h3>Prvky</h3><button class="primary" id="newSetBtn">+ Nový</button></div>
+      <ul id="setList" class="list"></ul>
+    </aside>
+    <div class="work">
+      <div class="toolbar">
+        <input type="text" id="setName" placeholder="Název prvku" style="width:200px">
+        <button id="addDancersBtn">👥 Přidat lidi</button>
+        <button id="removeDancersBtn">Odebrat vybrané</button>
+        <span class="sep"></span>
+        <label class="chk"><input type="checkbox" id="snapChk"> Přichytit k mřížce</label>
+        <label class="chk"><input type="checkbox" class="namesChk"> Jména</label>
+        <button id="floorBtn">⚙ Parket</button>
+        <span class="grow"></span>
+        <button id="previewSetBtn">▶ Přehrát prvek</button>
+      </div>
+      <div class="stage-wrap"><canvas id="setCanvas"></canvas><div class="stage-hint" id="setHint"></div></div>
+      <div class="framebar">
+        <b>Snímky:</b>
+        <div id="frameStrip" class="frames"></div>
+        <button id="addFrameBtn" class="primary" title="Přidat snímek">+</button>
+        <span class="grow"></span>
+        <button id="clearMovesBtn" title="Vybraní tanečníci se v tomto snímku nebudou hýbat">Zrušit pohyb vybraných</button>
+        <button id="deleteFrameBtn" class="danger">Smazat snímek</button>
+        <button id="cancelDraftBtn">Zrušit</button>
+        <button id="applyDraftBtn" class="primary">✔ Použít</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TANEC ============ -->
+  <section id="tab-dance" class="tab">
+    <aside class="side">
+      <div class="side-head"><h3>Tance</h3><button class="primary" id="newDanceBtn">+ Nový</button></div>
+      <ul id="danceList" class="list"></ul>
+      <div class="side-head" style="margin-top:18px"><h3>Přidat prvek do tance</h3></div>
+      <ul id="danceSetList" class="list"></ul>
+    </aside>
+    <div class="work">
+      <div class="toolbar">
+        <input type="text" id="danceName" placeholder="Název tance" style="width:180px">
+        <button id="musicBtn">🎵 Hudba</button>
+        <span id="musicName" class="muted small"></span>
+        <input type="file" id="musicInput" accept="audio/*,.mp3,.wav,.m4a,.ogg,.aac,.flac" hidden>
+        <label>Začátek tance <input type="number" id="offsetInput" step="0.1" min="0" style="width:72px"> s</label>
+        <label class="chk"><input type="checkbox" class="namesChk"> Jména</label>
+        <span class="grow"></span>
+        <button id="exportBtn" class="primary">⬇ Export videa</button>
+      </div>
+      <div class="transbar" id="transBar" hidden>
+        <b>Úprava přechodu</b>
+        <span class="muted small">Táhněte plné kuličky k průhledným (cílovým). Kdo se netáhne, jde rovnou čarou.</span>
+        <span class="grow"></span>
+        <button id="transStraightBtn">Rovně (vybraní)</button>
+        <button id="transCancelBtn">Zrušit</button>
+        <button id="transApplyBtn" class="primary">✔ Použít</button>
+        <button id="transCloseBtn">Zavřít</button>
+      </div>
+      <div class="stage-wrap"><canvas id="danceCanvas"></canvas></div>
+      <div id="seq" class="seq"></div>
+      <div class="transport">
+        <button id="tStart" title="Na začátek">⏮</button>
+        <button id="tBack" title="−5 s">⏪</button>
+        <button id="tPlay" class="primary play" title="Přehrát / pauza (mezerník)">▶</button>
+        <button id="tFwd" title="+5 s">⏩</button>
+        <span id="tTime" class="time">0:00.0 / 0:00.0</span>
+        <span class="grow"></span>
+        <span class="muted small">Táhněte konec bloku = délka · dvojklik = přesná délka · Ctrl+kolečko = zoom</span>
+        <button id="zoomOut" title="Oddálit">−</button>
+        <button id="zoomIn" title="Přiblížit">+</button>
+        <label class="chk"><input type="checkbox" id="followChk"> Sledovat</label>
+      </div>
+      <div class="tl-scroll" id="tlScroll"><div class="tl-inner" id="tlInner"><canvas id="tlCanvas"></canvas></div></div>
+    </div>
+  </section>
+</main>
+
+<div id="modal" hidden><div id="modalBox"></div></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   Pomocné funkce
+   ===================================================================== */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const uid = () => Math.random().toString(36).slice(2, 10);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const clone = o => JSON.parse(JSON.stringify(o));
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function plural(n, one, few, many) { return n === 1 ? one : (n >= 2 && n <= 4 ? few : many); }
+function fmtTime(t) { t = Math.max(0, t); const m = Math.floor(t / 60); const s = t - m * 60; return m + ':' + s.toFixed(1).padStart(4, '0'); }
+function hexRgb(h) { h = String(h || '#888888').replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); const n = parseInt(h, 16) || 0; return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+function rgba(hex, a) { const [r, g, b] = hexRgb(hex); return `rgba(${r},${g},${b},${a})`; }
+function textOn(hex) { const [r, g, b] = hexRgb(hex); return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.62 ? '#1b1726' : '#fff'; }
+function hashHue(s) { let h = 7; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 360; }
+function initials(name) {
+  const w = String(name).trim().split(/\s+/).filter(Boolean);
+  if (!w.length) return '?';
+  if (w.length > 1) return (w[0][0] + w[1][0]).toUpperCase();
+  return w[0].slice(0, 2).replace(/^./, c => c.toUpperCase());
+}
+function download(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 5000);
+}
+function safeName(s) { return String(s || 'tanec').replace(/[\\/:*?"<>|]+/g, '_').trim() || 'tanec'; }
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* plný nebo zakázaný */ } }
+
+const PALETTE = ['#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4', '#42d4f4', '#f032e6', '#bfef45', '#fabed4', '#469990', '#dcbeff', '#9a6324', '#ffe119', '#800000', '#aaffc3', '#808000', '#000075', '#ffd8b1'];
+const R = 0.32;            // poloměr kuličky (v metrech parketu)
+const DEFAULT_DUR = 2;     // výchozí délka snímku v tanci (s)
+const PREVIEW_DUR = 1.5;   // délka snímku při náhledu prvku (s)
+const STAGE_BG = '#2a2440';
+const STORE_KEY = 'choreografie.v1', UI_KEY = 'choreografie.ui';
+
+/* =====================================================================
+   Stav a ukládání
+   ===================================================================== */
+function emptyState() { return { version: 1, floor: { w: 12, h: 8 }, groups: [], sets: [], dances: [] }; }
+function normalize(s) {
+  if (!s || typeof s !== 'object') return emptyState();
+  s.version = 1;
+  s.floor = s.floor && s.floor.w > 0 && s.floor.h > 0 ? { w: +s.floor.w, h: +s.floor.h } : { w: 12, h: 8 };
+  s.groups = Array.isArray(s.groups) ? s.groups : [];
+  s.groups.forEach(g => { g.id ||= uid(); g.name ??= 'Skupina'; g.people = Array.isArray(g.people) ? g.people : []; g.people.forEach(p => { p.id ||= uid(); p.name ??= ''; p.color ||= '#888888'; }); });
+  s.sets = Array.isArray(s.sets) ? s.sets : [];
+  s.sets.forEach(st => { st.id ||= uid(); st.name ??= 'Prvek'; st.dancers ||= []; st.start ||= {}; st.frames ||= []; st.frames.forEach(f => { f.id ||= uid(); f.moves ||= {}; }); });
+  s.dances = Array.isArray(s.dances) ? s.dances : [];
+  s.dances.forEach(d => {
+    d.id ||= uid(); d.name ??= 'Tanec'; d.offset = +d.offset || 0; d.items ||= []; d.music ||= null;
+    d.items = d.items.filter(it => it.type === 'trans' || s.sets.some(x => x.id === it.setId));
+    d.items.forEach(it => { it.id ||= uid(); if (it.type === 'set') it.durs ||= []; else { it.type = 'trans'; it.dur = +it.dur || DEFAULT_DUR; it.moves ||= {}; } });
+  });
+  return s;
+}
+function loadState() { const s = lsGet(STORE_KEY); if (!s) return null; try { return normalize(JSON.parse(s)); } catch (e) { return null; } }
+
+let state = loadState() || emptyState();
+let ui = Object.assign({ showNames: true, snap: false, pps: 40, follow: true }, (() => { try { return JSON.parse(lsGet(UI_KEY)) || {}; } catch (e) { return {}; } })());
+function saveUi() { lsSet(UI_KEY, JSON.stringify(ui)); }
+let FW = 12, FH = 8;
+function syncFloor() { FW = state.floor.w; FH = state.floor.h; }
+syncFloor();
+
+let undoStack = [], redoStack = [], lastSnap = JSON.stringify(state);
+function commit() {
+  const snap = JSON.stringify(state);
+  if (snap === lastSnap) return;
+  undoStack.push(lastSnap); if (undoStack.length > 150) undoStack.shift();
+  redoStack = []; lastSnap = snap; lsSet(STORE_KEY, snap); updateUndoBtns();
+}
+function undo() { if (!undoStack.length) return; redoStack.push(lastSnap); lastSnap = undoStack.pop(); state = JSON.parse(lastSnap); lsSet(STORE_KEY, lastSnap); afterStateReplaced(); }
+function redo() { if (!redoStack.length) return; undoStack.push(lastSnap); lastSnap = redoStack.pop(); state = JSON.parse(lastSnap); lsSet(STORE_KEY, lastSnap); afterStateReplaced(); }
+function updateUndoBtns() { $('#undoBtn').disabled = !undoStack.length; $('#redoBtn').disabled = !redoStack.length; }
+function afterStateReplaced() {
+  syncFloor();
+  if (!setById(SE.setId)) SE.setId = state.sets[0]?.id || null;
+  SE.preview = null; loadDraft();
+  if (!curDance()) DE.danceId = state.dances[0]?.id || null;
+  DE.trans = null; DE.dirty = false;
+  pause(); attachAudio(); renderAll(); updateUndoBtns();
+}
+
+function peopleMap() { const m = new Map(); for (const g of state.groups) for (const p of g.people) m.set(p.id, p); return m; }
+function setById(id) { return state.sets.find(s => s.id === id) || null; }
+function nextColor() { let n = 0; state.groups.forEach(g => n += g.people.length); return PALETTE[n % PALETTE.length]; }
+
+/* =====================================================================
+   Geometrie pohybu
+   ===================================================================== */
+function clampFloor(p) { return [clamp(p[0], R, FW - R), clamp(p[1], R, FH - R)]; }
+function snapPt(p) { return clampFloor([Math.round(p[0] * 2) / 2, Math.round(p[1] * 2) / 2]); }
+function samplePath(pts, u) {
+  if (pts.length === 1) return pts[0];
+  const segs = []; let total = 0;
+  for (let i = 1; i < pts.length; i++) { const l = dist(pts[i], pts[i - 1]); segs.push(l); total += l; }
+  if (total < 1e-9) return pts[pts.length - 1];
+  let target = clamp(u, 0, 1) * total;
+  for (let i = 0; i < segs.length; i++) {
+    if (target <= segs[i] || i === segs.length - 1) {
+      const f = segs[i] > 0 ? Math.min(1, target / segs[i]) : 1;
+      const a = pts[i], b = pts[i + 1];
+      return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+    }
+    target -= segs[i];
+  }
+  return pts[pts.length - 1];
+}
+// Bod na nakreslené cestě; pokud cesta nezačíná přesně v `from` (nebo nekončí v `to`), plynule se dorovná.
+function blendPath(pts, from, u, to) {
+  const p = samplePath(pts, u);
+  let x = p[0] + (from[0] - pts[0][0]) * (1 - u), y = p[1] + (from[1] - pts[0][1]) * (1 - u);
+  if (to) { const e = pts[pts.length - 1]; x += (to[0] - e[0]) * u; y += (to[1] - e[1]) * u; }
+  return [x, y];
+}
+function samplePts(pts, from, to, n = 40) { const o = []; for (let i = 0; i <= n; i++) o.push(blendPath(pts, from, i / n, to)); return o; }
+
+function setStartPose(set) { const p = {}; for (const id of set.dancers) p[id] = set.start[id] || [FW / 2, FH / 2]; return p; }
+function applyFrame(pose, frame, u) {
+  const out = {};
+  for (const id in pose) { const m = frame.moves[id]; out[id] = m && m.length > 1 ? blendPath(m, pose[id], u) : pose[id]; }
+  return out;
+}
+// Pozice během snímku k (0..n-1) v čase u (0..1). k >= n → konec prvku.
+function setPoseAt(set, k, u = 1) {
+  let pose = setStartPose(set);
+  for (let i = 0; i < k && i < set.frames.length; i++) pose = applyFrame(pose, set.frames[i], 1);
+  if (k >= 0 && k < set.frames.length) pose = applyFrame(pose, set.frames[k], u);
+  return pose;
+}
+function setEndPose(set) { return setPoseAt(set, set.frames.length); }
+
+/* =====================================================================
+   Kreslení parketu a tanečníků
+   ===================================================================== */
+function floorRect(w, h, top = 0, bottom = 22) {
+  const pad = Math.max(8, Math.min(w, h) * 0.025);
+  const aw = w - 2 * pad, ah = h - top - bottom - 2 * pad;
+  const s = Math.max(0.5, Math.min(aw / FW, ah / FH));
+  const fw = FW * s, fh = FH * s;
+  return { x: (w - fw) / 2, y: top + pad + (ah - fh) / 2, w: fw, h: fh, s };
+}
+const toPx = (rc, p) => [rc.x + p[0] * rc.s, rc.y + p[1] * rc.s];
+const toFloor = (rc, x, y) => [(x - rc.x) / rc.s, (y - rc.y) / rc.s];
+
+function drawFloor(ctx, rc, labelSize) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 16;
+  ctx.fillStyle = '#fbf6ea'; ctx.fillRect(rc.x, rc.y, rc.w, rc.h);
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = 1; ctx.strokeStyle = '#ebe1c9';
+  ctx.beginPath();
+  for (let i = 1; i < FW; i++) { const x = Math.round(rc.x + i * rc.s) + .5; ctx.moveTo(x, rc.y); ctx.lineTo(x, rc.y + rc.h); }
+  for (let j = 1; j < FH; j++) { const y = Math.round(rc.y + j * rc.s) + .5; ctx.moveTo(rc.x, y); ctx.lineTo(rc.x + rc.w, y); }
+  ctx.stroke();
+  ctx.strokeStyle = '#cdbb8f'; ctx.setLineDash([6, 6]); ctx.beginPath();
+  ctx.moveTo(rc.x + rc.w / 2, rc.y); ctx.lineTo(rc.x + rc.w / 2, rc.y + rc.h); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = '#b9a77a'; ctx.lineWidth = 2; ctx.strokeRect(rc.x, rc.y, rc.w, rc.h);
+  const ls = labelSize || Math.min(13, rc.s * 0.3);
+  ctx.fillStyle = '#a9a0c8'; ctx.font = `600 ${ls}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText('▼  DIVÁCI  ▼', rc.x + rc.w / 2, rc.y + rc.h + ls * 0.35);
+  ctx.restore();
+}
+
+function drawBall(ctx, rc, person, pos, o = {}) {
+  const a = o.alpha ?? 1; if (a <= 0.01 || !pos) return;
+  const [x, y] = toPx(rc, pos); const r = R * rc.s; const col = person.color;
+  ctx.save(); ctx.globalAlpha = a;
+  if (o.ghost) {
+    ctx.setLineDash([4, 3]); ctx.lineWidth = 2; ctx.strokeStyle = col; ctx.fillStyle = rgba(col, .22);
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
+    if (o.label) { ctx.fillStyle = rgba('#3a3150', .7); ctx.font = `700 ${Math.max(8, r * .8)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(initials(person.name), x, y + 1); }
+    ctx.restore(); return;
+  }
+  if (o.selected) { ctx.beginPath(); ctx.arc(x, y, r + 5, 0, Math.PI * 2); ctx.fillStyle = 'rgba(124,77,255,.35)'; ctx.fill(); }
+  ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 5; ctx.shadowOffsetY = 1.5;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.lineWidth = Math.max(1.5, r * 0.12); ctx.strokeStyle = o.selected ? '#7c4dff' : '#fff'; ctx.stroke();
+  ctx.fillStyle = textOn(col); ctx.font = `700 ${Math.max(8, r * .82)}px system-ui, sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(initials(person.name), x, y + 1);
+  if (o.names) {
+    const fs = Math.max(9, r * 0.62);
+    ctx.font = `600 ${fs}px system-ui, sans-serif`; ctx.textBaseline = 'top';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineJoin = 'round';
+    ctx.strokeText(person.name, x, y + r + 2); ctx.fillStyle = '#2b2440'; ctx.fillText(person.name, x, y + r + 2);
+  }
+  ctx.restore();
+}
+function drawPose(ctx, rc, pose, pm, o = {}) {
+  for (const id in pose) { const p = pm.get(id); if (!p) continue; const v = pose[id]; drawBall(ctx, rc, p, v, { alpha: v[2] ?? 1, names: o.names, selected: o.sel && o.sel.has(id) }); }
+}
+function drawPolyline(ctx, rc, pts, color, o = {}) {
+  if (pts.length < 2) return;
+  const width = o.width || 2.5;
+  ctx.save(); ctx.globalAlpha = o.alpha ?? 1; ctx.lineJoin = ctx.lineCap = 'round';
+  const trace = () => { ctx.beginPath(); pts.forEach((p, i) => { const [x, y] = toPx(rc, p); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); };
+  if (o.dash) ctx.setLineDash(o.dash);
+  trace(); ctx.strokeStyle = 'rgba(40,30,60,.35)'; ctx.lineWidth = width + 2.5; ctx.stroke();
+  trace(); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
+  ctx.setLineDash([]);
+  if (o.arrow !== false) {
+    const e = toPx(rc, pts[pts.length - 1]); let j = pts.length - 2, b = toPx(rc, pts[j]);
+    while (j > 0 && Math.hypot(e[0] - b[0], e[1] - b[1]) < 14) { j--; b = toPx(rc, pts[j]); }
+    if (Math.hypot(e[0] - b[0], e[1] - b[1]) > 2) {
+      const ang = Math.atan2(e[1] - b[1], e[0] - b[0]); const rr = R * rc.s;
+      const tip = [e[0] - Math.cos(ang) * rr, e[1] - Math.sin(ang) * rr]; const L = 8 + width * 2;
+      ctx.beginPath(); ctx.moveTo(tip[0], tip[1]);
+      ctx.lineTo(tip[0] - L * Math.cos(ang - 0.45), tip[1] - L * Math.sin(ang - 0.45));
+      ctx.lineTo(tip[0] - L * Math.cos(ang + 0.45), tip[1] - L * Math.sin(ang + 0.45));
+      ctx.closePath(); ctx.fillStyle = color; ctx.strokeStyle = 'rgba(40,30,60,.45)'; ctx.lineWidth = 1; ctx.fill(); ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+function drawMessage(ctx, w, h, text) {
+  ctx.save(); ctx.fillStyle = '#e8e3f8'; ctx.font = '600 16px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, w / 2, h / 2); ctx.restore();
+}
+
+/* =====================================================================
+   Plátno s tažením kuliček (společné pro Prvky i přechody v Tanci)
+   ===================================================================== */
+class Stage {
+  constructor(canvas, drawFn, ctlFn) {
+    this.cv = canvas; this.ctx = canvas.getContext('2d'); this.drawFn = drawFn; this.ctlFn = ctlFn;
+    this.w = 0; this.h = 0; this.rc = null; this.drag = null; this.box = null;
+    new ResizeObserver(() => this.resize()).observe(canvas.parentElement);
+    canvas.addEventListener('pointerdown', e => this.down(e));
+    canvas.addEventListener('pointermove', e => this.move(e));
+    canvas.addEventListener('pointerup', e => this.up(e));
+    canvas.addEventListener('pointercancel', e => this.up(e));
+  }
+  resize() {
+    const p = this.cv.parentElement; const w = p.clientWidth, h = p.clientHeight; if (!w || !h) return;
+    const d = window.devicePixelRatio || 1; this.cv.width = Math.round(w * d); this.cv.height = Math.round(h * d);
+    this.w = w; this.h = h; this.draw();
+  }
+  draw() {
+    if (!this.w) return; const c = this.ctx; const d = this.cv.width / this.w;
+    c.setTransform(d, 0, 0, d, 0, 0); c.fillStyle = STAGE_BG; c.fillRect(0, 0, this.w, this.h);
+    this.drawFn(c, this.w, this.h, this);
+    if (this.box) {
+      const { a, b } = this.box; c.save(); c.strokeStyle = '#7c4dff'; c.fillStyle = 'rgba(124,77,255,.12)'; c.setLineDash([5, 4]);
+      c.fillRect(a[0], a[1], b[0] - a[0], b[1] - a[1]); c.strokeRect(a[0], a[1], b[0] - a[0], b[1] - a[1]); c.restore();
+    }
+  }
+  pt(e) { const r = this.cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+  hit(ctl, p) {
+    const pos = ctl.positions(); let hit = null, best = Infinity;
+    for (const id in pos) {
+      if (!ctl.canDrag(id)) continue;
+      const d2 = (pos[id][0] - p[0]) ** 2 + (pos[id][1] - p[1]) ** 2;
+      if (d2 <= (R * 1.3) ** 2 && d2 <= best) { best = d2; hit = id; }
+    }
+    return hit;
+  }
+  down(e) {
+    const ctl = this.ctlFn(); if (!ctl || !this.rc || e.button > 0) return;
+    const px = this.pt(e); const p = toFloor(this.rc, ...px); const add = e.shiftKey || e.ctrlKey || e.metaKey;
+    this.cv.setPointerCapture(e.pointerId);
+    const hit = this.hit(ctl, p); const sel = ctl.sel;
+    if (hit) {
+      if (add && sel.has(hit)) { sel.delete(hit); this.draw(); ctl.changed?.(); return; }
+      if (add) sel.add(hit); else if (!sel.has(hit)) { sel.clear(); sel.add(hit); }
+      const pos = ctl.positions();
+      ctl.beginDrag([...sel].filter(id => ctl.canDrag(id) && pos[id]));
+      this.drag = { ctl, start: p, moved: false };
+    } else {
+      if (!add) sel.clear();
+      this.box = { ctl, a: px, b: px };
+    }
+    this.draw(); ctl.changed?.();
+  }
+  move(e) {
+    const px = this.pt(e);
+    if (this.drag) {
+      const p = toFloor(this.rc, ...px); const dx = p[0] - this.drag.start[0], dy = p[1] - this.drag.start[1];
+      if (!this.drag.moved && Math.hypot(dx, dy) * this.rc.s < 3) return;
+      this.drag.moved = true; this.drag.ctl.dragTo(dx, dy); this.draw();
+    } else if (this.box) { this.box.b = px; this.draw(); }
+    else { const ctl = this.ctlFn(); this.cv.style.cursor = ctl && this.rc && this.hit(ctl, toFloor(this.rc, ...px)) ? 'grab' : 'default'; }
+  }
+  up() {
+    if (this.drag) { const { ctl, moved } = this.drag; this.drag = null; ctl.endDrag(moved); this.draw(); ctl.changed?.(); }
+    else if (this.box) {
+      const { a, b, ctl } = this.box; this.box = null;
+      const p1 = toFloor(this.rc, Math.min(a[0], b[0]), Math.min(a[1], b[1])), p2 = toFloor(this.rc, Math.max(a[0], b[0]), Math.max(a[1], b[1]));
+      const pos = ctl.positions();
+      for (const id in pos) if (ctl.canDrag(id) && pos[id][0] >= p1[0] && pos[id][0] <= p2[0] && pos[id][1] >= p1[1] && pos[id][1] <= p2[1]) ctl.sel.add(id);
+      this.draw(); ctl.changed?.();
+    }
+  }
+}
+
+// Ovladač pro přímé posouvání (snímek Start)
+function posCtl(o) {
+  let ops = [];
+  return {
+    get rect() { return o.stage.rc; }, sel: o.sel, changed: o.changed,
+    positions: () => o.draft(), canDrag: () => true,
+    beginDrag(ids) { const d = o.draft(); ops = ids.map(id => ({ id, from: d[id].slice() })); },
+    dragTo(dx, dy) { const d = o.draft(); for (const op of ops) d[op.id] = clampFloor([op.from[0] + dx, op.from[1] + dy]); },
+    endDrag(moved) { if (!moved) return; const d = o.draft(); if (ui.snap) for (const op of ops) d[op.id] = snapPt(d[op.id]); o.onDirty(); },
+  };
+}
+// Ovladač pro nahrávání cest (snímky a přechody)
+function pathCtl(o) {
+  let ops = [];
+  const ctl = {
+    get rect() { return o.stage.rc; }, sel: o.sel, changed: o.changed, canDrag: o.canDrag,
+    positions() { const b = o.base(), mv = o.draft(), out = {}; for (const id in b) { const m = mv[id]; out[id] = m && m.length > 1 ? m[m.length - 1] : b[id]; } return out; },
+    beginDrag(ids) {
+      const b = o.base(), mv = o.draft();
+      ops = ids.map(id => { const had = mv[id] ? clone(mv[id]) : null; return { id, had, from: had && had.length > 1 ? had[had.length - 1] : b[id] }; });
+    },
+    dragTo(dx, dy) {
+      const b = o.base(), mv = o.draft();
+      for (const op of ops) {
+        const p = clampFloor([op.from[0] + dx, op.from[1] + dy]);
+        let path = mv[op.id]; if (!path || !path.length) path = mv[op.id] = [b[op.id].slice()];
+        if (path.length >= 2 && dist(path[path.length - 2], p) < 0.06) path[path.length - 1] = p; else path.push(p);
+      }
+    },
+    endDrag(moved) {
+      const mv = o.draft();
+      for (const op of ops) {
+        if (!moved) { if (op.had) mv[op.id] = op.had; else delete mv[op.id]; continue; }
+        const path = mv[op.id]; if (!path || path.length < 2) continue;
+        let end = path[path.length - 1]; const t = o.target?.(op.id);
+        if (t && dist(end, t) < 0.6) end = t.slice(); else if (ui.snap) end = snapPt(end);
+        path[path.length - 1] = end;
+      }
+      ops = []; if (moved) o.onDirty();
+    },
+  };
+  return ctl;
+}
+
+/* =====================================================================
+   Modální okno
+   ===================================================================== */
+let modalLocked = false;
+function openModal(html) { $('#modalBox').innerHTML = html; $('#modal').hidden = false; return $('#modalBox'); }
+function closeModal() { if (modalLocked) return; $('#modal').hidden = true; $('#modalBox').innerHTML = ''; }
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal' || e.target.closest('[data-close]')) closeModal(); });
+
+/* =====================================================================
+   Záložky
+   ===================================================================== */
+let activeTab = 'people';
+$$('.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+function showTab(name) {
+  if (name !== 'dance') pause();
+  if (name !== 'sets') SE.preview = null;
+  activeTab = name;
+  $$('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  $$('.tab').forEach(s => s.classList.toggle('active', s.id === 'tab-' + name));
+  if (name === 'people') renderPeople();
+  if (name === 'sets') renderSets();
+  if (name === 'dance') renderDanceUI();
+}
+
+/* =====================================================================
+   LIDIČKY
+   ===================================================================== */
+function renderPeople() {
+  const el = $('#groupsList');
+  if (!state.groups.length) { el.innerHTML = '<p class="muted">Zatím žádné skupiny. Klikněte na „+ Nová skupina“.</p>'; return; }
+  el.innerHTML = state.groups.map(g => `
+    <div class="card" data-g="${g.id}">
+      <div class="card-head">
+        <input type="text" class="gname" value="${esc(g.name)}" placeholder="Název skupiny">
+        <span class="count">${g.people.length}</span>
+        <button class="danger mini delGroup" title="Smazat skupinu">✕</button>
+      </div>
+      <ul class="people">${g.people.map(p => `
+        <li data-p="${p.id}">
+          <input type="color" class="pcolor" value="${esc(p.color)}" title="Barva kuličky">
+          <input type="text" class="pname" value="${esc(p.name)}">
+          <button class="mini delPerson" title="Smazat">✕</button>
+        </li>`).join('')}
+      </ul>
+      <form class="addPerson"><input type="text" placeholder="Jméno (víc jmen oddělte čárkou)"><button class="primary">Přidat</button></form>
+    </div>`).join('');
+}
+const groupOf = el => state.groups.find(g => g.id === el.closest('[data-g]')?.dataset.g);
+const personOf = (g, el) => g?.people.find(p => p.id === el.closest('[data-p]')?.dataset.p);
+$('#addGroupBtn').onclick = () => {
+  const g = { id: uid(), name: 'Skupina ' + (state.groups.length + 1), people: [] };
+  state.groups.push(g); commit(); renderPeople();
+  const inp = $(`[data-g="${g.id}"] .gname`); inp.focus(); inp.select();
+};
+$('#groupsList').addEventListener('input', e => {
+  const t = e.target, g = groupOf(t); if (!g) return;
+  if (t.classList.contains('gname')) g.name = t.value;
+  else if (t.classList.contains('pname')) { const p = personOf(g, t); if (p) p.name = t.value; }
+  else if (t.classList.contains('pcolor')) { const p = personOf(g, t); if (p) p.color = t.value; }
+});
+$('#groupsList').addEventListener('change', e => { if (e.target.matches('.gname,.pname,.pcolor')) commit(); });
+$('#groupsList').addEventListener('click', e => {
+  const g = groupOf(e.target); if (!g) return;
+  if (e.target.closest('.delGroup')) {
+    if (!confirm(`Smazat skupinu „${g.name}“ i se všemi ${g.people.length} lidmi? Zmizí i z prvků.`)) return;
+    deletePeople(g.people.map(p => p.id)); state.groups = state.groups.filter(x => x !== g); commit(); renderPeople();
+  } else if (e.target.closest('.delPerson')) {
+    const p = personOf(g, e.target); if (!p) return;
+    if (!confirm(`Smazat „${p.name}“? Zmizí i ze všech prvků.`)) return;
+    deletePeople([p.id]); commit(); renderPeople();
+  }
+});
+$('#groupsList').addEventListener('submit', e => {
+  e.preventDefault();
+  const g = groupOf(e.target); const inp = e.target.querySelector('input');
+  const names = inp.value.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+  if (!g || !names.length) return;
+  names.forEach(n => g.people.push({ id: uid(), name: n, color: nextColor() }));
+  commit(); renderPeople(); $(`[data-g="${g.id}"] .addPerson input`).focus();
+});
+function deletePeople(ids) {
+  const S = new Set(ids);
+  state.groups.forEach(g => g.people = g.people.filter(p => !S.has(p.id)));
+  state.sets.forEach(s => { s.dancers = s.dancers.filter(id => !S.has(id)); ids.forEach(id => { delete s.start[id]; s.frames.forEach(f => delete f.moves[id]); }); });
+  state.dances.forEach(d => d.items.forEach(it => { if (it.moves) ids.forEach(id => delete it.moves[id]); }));
+  ids.forEach(id => { SE.sel.delete(id); DE.sel.delete(id); });
+  loadDraft(); DE.trans = null; DE.dirty = false;
+}
+
+/* =====================================================================
+   PRVKY
+   ===================================================================== */
+const SE = { setId: state.sets[0]?.id || null, frame: -1, draft: null, dirty: false, sel: new Set(), preview: null };
+const curSet = () => setById(SE.setId);
+
+function loadDraft() {
+  const s = curSet(); SE.dirty = false;
+  if (!s) { SE.draft = null; return; }
+  if (SE.frame >= s.frames.length) SE.frame = s.frames.length - 1;
+  if (SE.frame < 0) { SE.frame = -1; SE.draft = { start: clone(setStartPose(s)) }; }
+  else SE.draft = { moves: clone(s.frames[SE.frame].moves) };
+  for (const id of [...SE.sel]) if (!s.dancers.includes(id)) SE.sel.delete(id);
+}
+function leaveSetDraft() {
+  if (!SE.dirty) return;
+  if (confirm('V tomto snímku máte neuložené změny. Použít je?\n(OK = použít, Zrušit = zahodit)')) applySetDraft(); else loadDraft();
+}
+function applySetDraft() {
+  const s = curSet(); if (!s || !SE.draft) return;
+  if (SE.frame < 0) { s.start = {}; for (const id of s.dancers) s.start[id] = SE.draft.start[id]; }
+  else { const mv = {}; for (const id in SE.draft.moves) if (SE.draft.moves[id].length > 1 && s.dancers.includes(id)) mv[id] = SE.draft.moves[id]; s.frames[SE.frame].moves = mv; }
+  commit(); loadDraft(); renderSets();
+}
+function markSetDirty() { SE.dirty = true; renderSetControls(); }
+
+const setStage = new Stage($('#setCanvas'), drawSetStage, () => {
+  if (!curSet() || !SE.draft || SE.preview) return null;
+  return SE.frame < 0 ? SE.posCtl : SE.pathCtl;
+});
+SE.posCtl = posCtl({ stage: setStage, sel: SE.sel, draft: () => SE.draft.start, onDirty: markSetDirty, changed: renderSetControls });
+SE.pathCtl = pathCtl({ stage: setStage, sel: SE.sel, base: () => setPoseAt(curSet(), SE.frame, 0), draft: () => SE.draft.moves, canDrag: () => true, onDirty: markSetDirty, changed: renderSetControls });
+
+function drawSetStage(ctx, w, h, stage) {
+  const rc = stage.rc = floorRect(w, h, 34, 22); drawFloor(ctx, rc);
+  const s = curSet(); const pm = peopleMap();
+  if (!s) { drawMessage(ctx, w, h, 'Vytvořte nebo vyberte prvek vlevo'); return; }
+  if (SE.preview) { drawPose(ctx, rc, previewPose(), pm, { names: ui.showNames }); return; }
+  if (!SE.draft) return;
+  if (!s.dancers.length) { drawMessage(ctx, w, h, 'Klikněte na „👥 Přidat lidi“'); return; }
+  if (SE.frame < 0) {
+    for (const id of s.dancers) { const p = pm.get(id); if (p) drawBall(ctx, rc, p, SE.draft.start[id], { names: ui.showNames, selected: SE.sel.has(id) }); }
+    return;
+  }
+  const base = setPoseAt(s, SE.frame, 0); const mv = SE.draft.moves; const pos = SE.pathCtl.positions();
+  for (const id of s.dancers) { const p = pm.get(id); if (p && mv[id] && mv[id].length > 1) drawBall(ctx, rc, p, base[id], { ghost: true }); }
+  for (const id of s.dancers) { const p = pm.get(id); if (p && mv[id] && mv[id].length > 1) drawPolyline(ctx, rc, samplePts(mv[id], base[id], null), p.color); }
+  for (const id of s.dancers) { const p = pm.get(id); if (p) drawBall(ctx, rc, p, pos[id], { names: ui.showNames, selected: SE.sel.has(id) }); }
+}
+function previewPose() {
+  const s = curSet(); if (!s) return {};
+  const t = (performance.now() - SE.preview.t0) / 1000 - 0.4;
+  if (t <= 0) return setStartPose(s);
+  const k = Math.floor(t / PREVIEW_DUR);
+  return k >= s.frames.length ? setEndPose(s) : setPoseAt(s, k, (t - k * PREVIEW_DUR) / PREVIEW_DUR);
+}
+function previewTick() {
+  if (!SE.preview) return;
+  const s = curSet();
+  if (!s || (performance.now() - SE.preview.t0) / 1000 > 0.4 + s.frames.length * PREVIEW_DUR + 0.8) { SE.preview = null; renderSets(); return; }
+  setStage.draw(); requestAnimationFrame(previewTick);
+}
+
+function renderSets() {
+  const list = $('#setList');
+  list.innerHTML = state.sets.length ? state.sets.map(s => `
+    <li data-id="${s.id}" class="${s.id === SE.setId ? 'active' : ''}">
+      <span class="sw" style="background:hsl(${hashHue(s.id)} 60% 62%)"></span>
+      <span class="nm">${esc(s.name || 'bez názvu')}</span>
+      <span class="meta">${s.dancers.length} · ${s.frames.length} ${plural(s.frames.length, 'snímek', 'snímky', 'snímků')}</span>
+      <span class="acts"><button class="mini" data-act="copy" title="Kopírovat">⧉</button><button class="mini danger" data-act="del" title="Smazat">✕</button></span>
+    </li>`).join('') : '<li class="empty">Žádné prvky. Klikněte na „+ Nový“.</li>';
+  const s = curSet();
+  $('#setName').value = s ? s.name : ''; $('#setName').disabled = !s;
+  $('#frameStrip').innerHTML = s ? [`<button data-f="-1" class="${SE.frame === -1 ? 'active' : ''}${SE.frame === -1 && SE.dirty ? ' dirty' : ''}" title="Výchozí rozestavení">Start</button>`]
+    .concat(s.frames.map((f, i) => `<button data-f="${i}" class="${SE.frame === i ? 'active' : ''}${SE.frame === i && SE.dirty ? ' dirty' : ''}">${i + 1}</button>`)).join('') : '';
+  $('#previewSetBtn').textContent = SE.preview ? '■ Stop' : '▶ Přehrát prvek';
+  renderSetControls();
+  setStage.draw();
+}
+function renderSetControls() {
+  const s = curSet();
+  $('#addDancersBtn').disabled = $('#addFrameBtn').disabled = $('#previewSetBtn').disabled = !s;
+  $('#removeDancersBtn').disabled = !s || !SE.sel.size;
+  $('#applyDraftBtn').disabled = $('#cancelDraftBtn').disabled = !SE.dirty;
+  $('#deleteFrameBtn').disabled = !s || SE.frame < 0;
+  $('#clearMovesBtn').disabled = !s || SE.frame < 0 || !SE.sel.size;
+  $$('#frameStrip button').forEach(b => b.classList.toggle('dirty', SE.dirty && +b.dataset.f === SE.frame));
+  let hint = '';
+  if (s && !SE.preview) hint = SE.frame < 0
+    ? 'START: rozestavte tanečníky. Shift+klik nebo tažení rámečku = výběr více lidí najednou.'
+    : `SNÍMEK ${SE.frame + 1}: táhněte kuličky po cestě, kterou mají jít. Všichni se pak pohnou zároveň. Opakované tažení cestu prodlouží.`;
+  if (SE.dirty) hint += ' → Nezapomeňte kliknout na „✔ Použít“.';
+  $('#setHint').textContent = hint;
+}
+function selectSet(id) { leaveSetDraft(); SE.preview = null; SE.setId = id; SE.frame = -1; SE.sel.clear(); loadDraft(); renderSets(); }
+function selectFrame(f) { if (f === SE.frame) return; leaveSetDraft(); SE.preview = null; SE.frame = f; loadDraft(); renderSets(); }
+
+$('#setList').addEventListener('click', e => {
+  const li = e.target.closest('li[data-id]'); if (!li) return; const id = li.dataset.id;
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (act === 'copy') copySet(id); else if (act === 'del') deleteSet(id); else if (id !== SE.setId) selectSet(id);
+});
+$('#newSetBtn').onclick = () => {
+  leaveSetDraft();
+  const s = { id: uid(), name: 'Prvek ' + (state.sets.length + 1), dancers: [], start: {}, frames: [] };
+  state.sets.push(s); commit(); selectSet(s.id);
+  $('#setName').focus(); $('#setName').select();
+};
+function copySet(id) {
+  leaveSetDraft();
+  const src = setById(id); const s = clone(src); s.id = uid(); s.name = src.name + ' (kopie)'; s.frames.forEach(f => f.id = uid());
+  state.sets.splice(state.sets.indexOf(src) + 1, 0, s); commit(); selectSet(s.id);
+}
+function deleteSet(id) {
+  const s = setById(id); const used = state.dances.filter(d => d.items.some(it => it.setId === id));
+  if (!confirm(`Smazat prvek „${s.name}“?` + (used.length ? `\nJe použitý v tancích: ${used.map(d => d.name).join(', ')} – odtud zmizí také.` : ''))) return;
+  state.sets = state.sets.filter(x => x !== s);
+  state.dances.forEach(d => d.items = d.items.filter(it => it.setId !== id));
+  if (SE.setId === id) { SE.setId = state.sets[0]?.id || null; SE.frame = -1; }
+  DE.trans = null; commit(); loadDraft(); renderSets();
+}
+$('#setName').addEventListener('input', e => { const s = curSet(); if (!s) return; s.name = e.target.value; const li = $(`#setList li[data-id="${s.id}"] .nm`); if (li) li.textContent = s.name; });
+$('#setName').addEventListener('change', () => commit());
+$('#frameStrip').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (b) selectFrame(+b.dataset.f); });
+$('#addFrameBtn').onclick = () => {
+  const s = curSet(); if (!s) return; leaveSetDraft(); SE.preview = null;
+  s.frames.push({ id: uid(), moves: {} }); commit(); SE.frame = s.frames.length - 1; loadDraft(); renderSets();
+};
+$('#deleteFrameBtn').onclick = () => {
+  const s = curSet(); if (!s || SE.frame < 0) return;
+  if (!confirm(`Smazat snímek ${SE.frame + 1}?`)) return;
+  s.frames.splice(SE.frame, 1); state.dances.forEach(d => d.items.forEach(it => { if (it.setId === s.id && it.durs) it.durs.splice(SE.frame, 1); }));
+  commit(); SE.frame = Math.min(SE.frame, s.frames.length - 1); loadDraft(); renderSets();
+};
+$('#applyDraftBtn').onclick = applySetDraft;
+$('#cancelDraftBtn').onclick = () => { loadDraft(); renderSets(); };
+$('#clearMovesBtn').onclick = () => { if (SE.frame < 0 || !SE.draft) return; for (const id of SE.sel) delete SE.draft.moves[id]; markSetDirty(); setStage.draw(); };
+$('#addDancersBtn').onclick = openAddDancers;
+$('#removeDancersBtn').onclick = () => {
+  const s = curSet(); if (!s) return; const ids = [...SE.sel].filter(id => s.dancers.includes(id)); if (!ids.length) return;
+  const pm = peopleMap();
+  if (!confirm(`Odebrat z prvku: ${ids.map(id => pm.get(id)?.name || '?').join(', ')}?`)) return;
+  s.dancers = s.dancers.filter(id => !ids.includes(id)); ids.forEach(id => { delete s.start[id]; s.frames.forEach(f => delete f.moves[id]); });
+  SE.sel.clear(); commit(); loadDraft(); renderSets();
+};
+$('#previewSetBtn').onclick = () => {
+  if (SE.preview) { SE.preview = null; renderSets(); return; }
+  const s = curSet(); if (!s) return;
+  if (!s.frames.length) { alert('Prvek zatím nemá žádný snímek s pohybem. Přidejte snímek tlačítkem „+“ dole.'); return; }
+  leaveSetDraft(); SE.preview = { t0: performance.now() }; renderSets(); requestAnimationFrame(previewTick);
+};
+$('#snapChk').onchange = e => { ui.snap = e.target.checked; saveUi(); };
+$$('.namesChk').forEach(c => c.onchange = e => { ui.showNames = e.target.checked; saveUi(); $$('.namesChk').forEach(x => x.checked = ui.showNames); setStage.draw(); danceStage.draw(); });
+
+function freeSpot(occ) {
+  const c = [];
+  for (let x = 1; x < FW; x++) for (let y = 1; y < FH; y++) c.push([x, y]);
+  c.sort((a, b) => Math.hypot(a[0] - FW / 2, a[1] - FH / 2) - Math.hypot(b[0] - FW / 2, b[1] - FH / 2));
+  for (const p of c) if (occ.every(o => dist(o, p) > 0.95)) return p;
+  return clampFloor([FW / 2 + Math.random() - .5, FH / 2 + Math.random() - .5]);
+}
+function openAddDancers() {
+  const s = curSet(); if (!s) return;
+  if (!state.groups.some(g => g.people.length)) { alert('Nejdřív přidejte tanečníky v záložce „Lidičky“.'); return; }
+  leaveSetDraft();
+  const inSet = new Set(s.dancers);
+  const groups = state.groups.map(g => ({ g, ppl: g.people.filter(p => !inSet.has(p.id)) })).filter(x => x.ppl.length);
+  if (!groups.length) { alert('Všichni už v tomto prvku jsou.'); return; }
+  const box = openModal(`<h3>Přidat do „${esc(s.name)}“</h3>
+    <div class="pick">${groups.map(({ g, ppl }) => `<fieldset>
+      <legend><label class="chk"><input type="checkbox" class="allg"> ${esc(g.name)} (celá skupina)</label></legend>
+      ${ppl.map(p => `<label class="pp"><input type="checkbox" value="${p.id}"><span class="dot" style="background:${esc(p.color)}"></span>${esc(p.name)}</label>`).join('')}
+    </fieldset>`).join('')}</div>
+    <div class="modal-actions"><button data-close>Zrušit</button><button class="primary" id="doAdd">Přidat</button></div>`);
+  box.querySelectorAll('.allg').forEach(cb => cb.onchange = () => cb.closest('fieldset').querySelectorAll('.pp input').forEach(x => x.checked = cb.checked));
+  box.querySelector('#doAdd').onclick = () => {
+    const ids = [...box.querySelectorAll('.pp input:checked')].map(x => x.value);
+    if (ids.length) {
+      const occ = Object.values(SE.frame >= 0 ? setPoseAt(s, SE.frame, 0) : setStartPose(s));
+      ids.forEach(id => { const p = freeSpot(occ); occ.push(p); s.dancers.push(id); s.start[id] = p; });
+      commit(); loadDraft();
+    }
+    closeModal(); renderSets();
+  };
+}
+$('#floorBtn').onclick = () => {
+  const box = openModal(`<h3>Velikost parketu</h3>
+    <div class="formrow"><label>Šířka <input type="number" id="fw" min="2" max="60" step="0.5" value="${FW}" style="width:80px"> m</label>
+    <label>Hloubka <input type="number" id="fh" min="2" max="60" step="0.5" value="${FH}" style="width:80px"> m</label></div>
+    <p class="muted small">Mřížka má čtverce 1 × 1 m. Diváci jsou vždy dole.</p>
+    <div class="modal-actions"><button data-close>Zrušit</button><button class="primary" id="fok">Uložit</button></div>`);
+  box.querySelector('#fok').onclick = () => {
+    const w = clamp(+box.querySelector('#fw').value || 12, 2, 60), h = clamp(+box.querySelector('#fh').value || 8, 2, 60);
+    state.floor = { w, h }; syncFloor(); commit(); closeModal(); loadDraft(); renderSets(); danceStage.draw();
+  };
+};
+
+/* =====================================================================
+   TANEC – časový plán a výpočet pozic
+   ===================================================================== */
+const DE = { danceId: state.dances[0]?.id || null, t: 0, playing: false, trans: null, draft: null, dirty: false, sel: new Set(), selSeg: null };
+const curDance = () => state.dances.find(d => d.id === DE.danceId) || null;
+const music = {};   // danceId -> {name, url, buffer, peaks, duration}
+
+function itemDurs(it) {
+  const s = setById(it.setId); const n = s ? Math.max(1, s.frames.length) : 1; const out = [];
+  for (let k = 0; k < n; k++) out.push(+it.durs?.[k] > 0 ? +it.durs[k] : DEFAULT_DUR);
+  return out;
+}
+function schedule(d) {
+  const segs = []; let t = d.offset || 0;
+  d.items.forEach((it, i) => {
+    if (it.type === 'set') itemDurs(it).forEach((dur, k) => { segs.push({ t0: t, dur, item: i, k }); t += dur; });
+    else { segs.push({ t0: t, dur: it.dur, item: i, k: 0, trans: true }); t += it.dur; }
+  });
+  return { segs, end: t };
+}
+function findSet(d, i, dir) {
+  for (let j = i + dir; j >= 0 && j < d.items.length; j += dir) { const it = d.items[j]; if (it.type === 'set') return setById(it.setId); }
+  return null;
+}
+function transPose(from, to, moves, u) {
+  const out = {};
+  for (const id in from) {
+    const f = from[id], g = to[id];
+    if (g) { const m = moves[id]; const p = m && m.length > 1 ? blendPath(m, f, u, g) : [f[0] + (g[0] - f[0]) * u, f[1] + (g[1] - f[1]) * u]; out[id] = [p[0], p[1], 1]; }
+    else out[id] = [f[0], f[1], 1 - u];
+  }
+  for (const id in to) if (!from[id]) out[id] = [to[id][0], to[id][1], u];
+  return out;
+}
+function setFramePose(set, k, u) { return set.frames.length ? setPoseAt(set, k, u) : setStartPose(set); }
+function danceStateAt(d, t) {
+  const { segs } = schedule(d);
+  if (!segs.length) return { pose: {}, titles: [] };
+  let seg = segs.find(s => t < s.t0 + s.dur), u;
+  if (!seg) { seg = segs[segs.length - 1]; u = 1; } else u = clamp((t - seg.t0) / seg.dur, 0, 1);
+  const it = d.items[seg.item];
+  if (it.type === 'set') {
+    const s = setById(it.setId); if (!s) return { pose: {}, titles: [] };
+    return { pose: setFramePose(s, seg.k, u), titles: [{ text: s.name, a: 1 }] };
+  }
+  const prev = findSet(d, seg.item, -1), next = findSet(d, seg.item, 1);
+  const pose = transPose(prev ? setEndPose(prev) : {}, next ? setStartPose(next) : {}, it.moves, u);
+  const titles = [];
+  // starý název zmizí v první polovině přechodu, nový se objeví ve druhé
+  if (prev) titles.push({ text: prev.name, a: next ? clamp(1 - 2 * u, 0, 1) : 1 });
+  if (next) titles.push({ text: next.name, a: prev ? clamp(2 * u - 1, 0, 1) : 1 });
+  return { pose, titles };
+}
+function danceLayout(w, h) {
+  const titleH = Math.max(40, Math.round(h * 0.14));
+  const bottom = Math.max(18, Math.round(h * 0.045));
+  const rc = floorRect(w, h, titleH, bottom);
+  return { titleH, rc, labelSize: Math.min(bottom * 0.62, Math.max(10, rc.s * 0.3)) };
+}
+function drawTitles(ctx, w, H, titles, scale = 1) {
+  for (const { text, a } of titles) {
+    if (a <= 0.01 || !text) continue;
+    ctx.save(); ctx.globalAlpha = a;
+    let fs = H * 0.62 * scale; ctx.font = `800 ${fs}px system-ui, sans-serif`;
+    const mw = ctx.measureText(text).width; if (mw > w * 0.94) { fs *= w * 0.94 / mw; ctx.font = `800 ${fs}px system-ui, sans-serif`; }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff';
+    ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = fs * 0.12; ctx.shadowOffsetY = fs * 0.04;
+    ctx.fillText(text, w / 2, H * 0.56); ctx.restore();
+  }
+}
+function renderDance(ctx, w, h, d, t) {
+  const L = danceLayout(w, h);
+  ctx.fillStyle = STAGE_BG; ctx.fillRect(0, 0, w, h);
+  const st = danceStateAt(d, t);
+  drawTitles(ctx, w, L.titleH, st.titles);
+  drawFloor(ctx, L.rc, L.labelSize);
+  drawPose(ctx, L.rc, st.pose, peopleMap(), { names: ui.showNames });
+  return L;
+}
+
+/* =====================================================================
+   TANEC – plátno a úprava přechodů
+   ===================================================================== */
+function transCtx() {
+  const d = curDance(); const prev = findSet(d, DE.trans, -1), next = findSet(d, DE.trans, 1);
+  return { prev, next, from: prev ? setEndPose(prev) : {}, to: next ? setStartPose(next) : {} };
+}
+const danceStage = new Stage($('#danceCanvas'), drawDanceStage, () => (DE.trans != null && !DE.playing && curDance() && DE.draft) ? DE.ctl : null);
+DE.ctl = pathCtl({
+  stage: danceStage, sel: DE.sel, base: () => transCtx().from, draft: () => DE.draft.moves,
+  canDrag: id => { const c = transCtx(); return !!(c.from[id] && c.to[id]); },
+  target: id => transCtx().to[id], onDirty: () => { DE.dirty = true; renderTransBar(); },
+});
+function drawDanceStage(ctx, w, h, stage) {
+  const d = curDance();
+  if (!d) { stage.rc = floorRect(w, h); drawMessage(ctx, w, h, 'Vytvořte tanec tlačítkem „+ Nový“ vlevo'); return; }
+  if (DE.trans != null && !DE.playing && DE.draft) { drawTransEditor(ctx, w, h, stage); return; }
+  const L = renderDance(ctx, w, h, d, DE.t); stage.rc = L.rc;
+  if (!d.items.length) drawMessage(ctx, w, h, 'Přidejte prvky ze seznamu vlevo');
+}
+function drawTransEditor(ctx, w, h, stage) {
+  const L = danceLayout(w, h); stage.rc = L.rc; const rc = L.rc;
+  const c = transCtx(); const pm = peopleMap(); const mv = DE.draft.moves; const pos = DE.ctl.positions();
+  drawTitles(ctx, w, L.titleH, [{ text: `${c.prev?.name || '—'}  →  ${c.next?.name || '—'}`, a: 1 }], 0.6);
+  drawFloor(ctx, rc, L.labelSize);
+  for (const id in c.to) { const p = pm.get(id); if (p) drawBall(ctx, rc, p, c.to[id], { ghost: true, label: true }); }
+  for (const id in c.from) {
+    const p = pm.get(id); if (!p || !c.to[id]) continue;
+    if (mv[id] && mv[id].length > 1) {
+      drawPolyline(ctx, rc, mv[id], p.color);
+      const e = mv[id][mv[id].length - 1]; if (dist(e, c.to[id]) > 0.01) drawPolyline(ctx, rc, [e, c.to[id]], p.color, { dash: [4, 4], alpha: .6, width: 1.5 });
+    } else drawPolyline(ctx, rc, [c.from[id], c.to[id]], p.color, { dash: [6, 5], alpha: .5, width: 2 });
+  }
+  for (const id in c.from) { const p = pm.get(id); if (p) drawBall(ctx, rc, p, pos[id], { alpha: c.to[id] ? 1 : 0.35, names: ui.showNames, selected: DE.sel.has(id) }); }
+}
+function editTrans(i) {
+  const d = curDance(); const it = d?.items[i]; if (!it || it.type !== 'trans') return;
+  if (DE.trans === i) return;
+  leaveTrans(); pause();
+  DE.trans = i; DE.draft = { moves: clone(it.moves) }; DE.dirty = false; DE.sel.clear();
+  const seg = schedule(d).segs.find(s => s.item === i); if (seg) DE.t = seg.t0;
+  renderDanceUI();
+}
+function leaveTrans() {
+  if (DE.trans == null) return;
+  if (DE.dirty && confirm('Přechod má neuložené změny. Použít je?\n(OK = použít, Zrušit = zahodit)')) applyTrans();
+  DE.trans = null; DE.draft = null; DE.dirty = false; renderTransBar(); renderSeq();
+}
+function applyTrans() {
+  const d = curDance(); const it = d?.items[DE.trans]; if (!it || !DE.draft) return;
+  const mv = {}; for (const id in DE.draft.moves) if (DE.draft.moves[id].length > 1) mv[id] = DE.draft.moves[id];
+  it.moves = mv; DE.draft = { moves: clone(mv) }; DE.dirty = false; commit(); renderTransBar();
+}
+function renderTransBar() {
+  const on = DE.trans != null && !!DE.draft; $('#transBar').hidden = !on;
+  $('#transApplyBtn').disabled = $('#transCancelBtn').disabled = !DE.dirty;
+}
+$('#transApplyBtn').onclick = () => { applyTrans(); danceStage.draw(); };
+$('#transCancelBtn').onclick = () => { const it = curDance().items[DE.trans]; DE.draft = { moves: clone(it.moves) }; DE.dirty = false; renderTransBar(); danceStage.draw(); };
+$('#transCloseBtn').onclick = () => { leaveTrans(); danceStage.draw(); drawTimeline(); };
+$('#transStraightBtn').onclick = () => {
+  if (!DE.draft) return; const ids = DE.sel.size ? [...DE.sel] : Object.keys(DE.draft.moves);
+  ids.forEach(id => delete DE.draft.moves[id]); DE.dirty = true; renderTransBar(); danceStage.draw();
+};
+
+/* =====================================================================
+   TANEC – přehrávání
+   ===================================================================== */
+const audio = new Audio(); audio.preload = 'auto';
+let clockBase = 0;
+let audioCtx = null;
+const getAC = () => audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+function hasAudio() { const d = curDance(); return !!(d && music[d.id]); }
+function danceEnd(d = curDance()) { if (!d) return 0; const m = music[d.id]; return Math.max(schedule(d).end, m ? m.duration : 0); }
+function attachAudio() {
+  const d = curDance(); const m = d && music[d.id];
+  if (m) { if (audio.src !== m.url) audio.src = m.url; } else if (audio.getAttribute('src')) { audio.removeAttribute('src'); audio.load(); }
+}
+function play() {
+  const d = curDance(); if (!d) return;
+  leaveTrans();
+  const end = danceEnd(d); if (end <= 0) return;
+  if (DE.t >= end - 0.02) DE.t = 0;
+  DE.playing = true; clockBase = performance.now() - DE.t * 1000;
+  if (hasAudio() && DE.t < music[d.id].duration) { audio.currentTime = DE.t; audio.play().catch(() => {}); }
+  updatePlayBtn(); requestAnimationFrame(tick);
+}
+function pause() { if (!DE.playing) return; DE.playing = false; audio.pause(); updatePlayBtn(); danceStage.draw(); drawTimeline(); updateTimeLabel(); }
+function togglePlay() { DE.playing ? pause() : play(); }
+function seek(t) {
+  const d = curDance(); if (!d) return;
+  DE.t = clamp(t, 0, Math.max(danceEnd(d), 0));
+  clockBase = performance.now() - DE.t * 1000;
+  if (DE.playing && hasAudio()) {
+    if (DE.t < music[d.id].duration) { audio.currentTime = DE.t; if (audio.paused) audio.play().catch(() => {}); } else audio.pause();
+  }
+  danceStage.draw(); drawTimeline(); updateTimeLabel();
+}
+function tick() {
+  if (!DE.playing) return;
+  const now = performance.now();
+  if (hasAudio() && !audio.paused && !audio.ended) { DE.t = audio.currentTime; clockBase = now - DE.t * 1000; }
+  else DE.t = (now - clockBase) / 1000;
+  const end = danceEnd();
+  if (DE.t >= end) { DE.t = end; pause(); return; }
+  if (ui.follow) { const x = DE.t * ui.pps - TL.sc.scrollLeft; if (x > TL.w * 0.85 || x < 0) TL.sc.scrollLeft = DE.t * ui.pps - TL.w * 0.15; }
+  danceStage.draw(); drawTimeline(); updateTimeLabel();
+  requestAnimationFrame(tick);
+}
+function updatePlayBtn() { $('#tPlay').textContent = DE.playing ? '⏸' : '▶'; }
+function updateTimeLabel() { $('#tTime').textContent = `${fmtTime(DE.t)} / ${fmtTime(danceEnd())}`; }
+$('#tPlay').onclick = togglePlay;
+$('#tStart').onclick = () => { leaveTrans(); seek(0); TL.sc.scrollLeft = 0; };
+$('#tBack').onclick = () => { leaveTrans(); seek(DE.t - 5); };
+$('#tFwd').onclick = () => { leaveTrans(); seek(DE.t + 5); };
+$('#followChk').onchange = e => { ui.follow = e.target.checked; saveUi(); };
+
+/* =====================================================================
+   TANEC – hudba
+   ===================================================================== */
+function computePeaks(buf) {
+  const rate = 100; const n = Math.ceil(buf.duration * rate); const peaks = new Float32Array(n * 2);
+  const chans = []; for (let c = 0; c < buf.numberOfChannels; c++) chans.push(buf.getChannelData(c));
+  const step = buf.sampleRate / rate;
+  for (let i = 0; i < n; i++) {
+    let mn = 0, mx = 0; const a = Math.floor(i * step), b = Math.min(chans[0].length, Math.floor((i + 1) * step));
+    for (let j = a; j < b; j += 4) { let v = 0; for (const ch of chans) v += ch[j]; v /= chans.length; if (v < mn) mn = v; if (v > mx) mx = v; }
+    peaks[i * 2] = mn; peaks[i * 2 + 1] = mx;
+  }
+  return { rate, data: peaks };
+}
+async function loadMusicFile(d, file) {
+  $('#musicName').textContent = 'Načítám ' + file.name + ' …';
+  let buffer;
+  try { buffer = await getAC().decodeAudioData(await file.arrayBuffer()); }
+  catch (e) { alert('Soubor „' + file.name + '“ se nepodařilo načíst jako hudbu.'); renderDanceUI(); return false; }
+  if (music[d.id]) URL.revokeObjectURL(music[d.id].url);
+  music[d.id] = { name: file.name, url: URL.createObjectURL(file), buffer, peaks: computePeaks(buffer), duration: buffer.duration };
+  d.music = { name: file.name, duration: buffer.duration }; commit();
+  if (d === curDance()) { attachAudio(); renderDanceUI(); }
+  return true;
+}
+const autoTried = new Set();
+function tryAutoLoadMusic(d) {
+  // Funguje, pokud je stránka otevřená přes http(s); u souboru otevřeného z disku prohlížeč čtení zakáže
+  if (!d || !d.music || music[d.id] || autoTried.has(d.id) || location.protocol === 'file:') return;
+  autoTried.add(d.id);
+  fetch(encodeURI(d.music.name)).then(r => { if (!r.ok) throw 0; return r.blob(); })
+    .then(b => loadMusicFile(d, new File([b], d.music.name))).catch(() => {});
+}
+$('#musicBtn').onclick = () => { if (!curDance()) createDance(); $('#musicInput').click(); };
+$('#musicInput').onchange = e => { const f = e.target.files[0]; e.target.value = ''; const d = curDance(); if (f && d) { pause(); loadMusicFile(d, f); } };
+
+/* =====================================================================
+   TANEC – časová osa
+   ===================================================================== */
+const TLH = 142, RULER = [0, 20], MUS = [24, 78], FRM = [84, 136];
+const TL = { sc: $('#tlScroll'), inner: $('#tlInner'), cv: $('#tlCanvas'), w: 0, drag: null };
+TL.ctx = TL.cv.getContext('2d');
+new ResizeObserver(() => tlResize()).observe(TL.sc);
+function tlResize() {
+  const w = TL.sc.clientWidth; if (!w) return; const dp = window.devicePixelRatio || 1;
+  TL.w = w; TL.cv.style.width = w + 'px'; TL.cv.style.height = TLH + 'px';
+  TL.cv.width = Math.round(w * dp); TL.cv.height = Math.round(TLH * dp);
+  tlUpdateWidth(); drawTimeline();
+}
+function tlTotal() { const d = curDance(); if (!d) return 10; return Math.max(danceEnd(d), d.music?.duration || 0, 5) + 5; }
+function tlUpdateWidth() { TL.inner.style.width = Math.max(TL.w, Math.ceil(tlTotal() * ui.pps) + 40) + 'px'; }
+TL.sc.addEventListener('scroll', () => drawTimeline());
+
+function drawTimeline() {
+  if (!TL.w) return;
+  const c = TL.ctx, dp = TL.cv.width / TL.w, w = TL.w, sl = TL.sc.scrollLeft, pps = ui.pps;
+  const X = t => t * pps - sl;
+  c.setTransform(dp, 0, 0, dp, 0, 0); c.fillStyle = '#fff'; c.fillRect(0, 0, w, TLH);
+  c.fillStyle = '#f6f4fb'; c.fillRect(0, RULER[0], w, RULER[1] - RULER[0]);
+  c.fillStyle = '#f1eef9'; c.fillRect(0, MUS[0], w, MUS[1] - MUS[0]); c.fillRect(0, FRM[0], w, FRM[1] - FRM[0]);
+  // pravítko
+  const steps = [0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 60, 120];
+  const step = steps.find(s => s * pps >= 64) || 120; const minor = step / 5;
+  const t0 = sl / pps, t1 = (sl + w) / pps;
+  c.strokeStyle = '#c9c2de'; c.fillStyle = '#6d6585'; c.font = '11px system-ui, sans-serif'; c.textBaseline = 'top'; c.textAlign = 'left';
+  c.beginPath();
+  if (minor * pps >= 6) for (let t = Math.floor(t0 / minor) * minor; t <= t1; t += minor) { const x = Math.round(X(t)) + .5; c.moveTo(x, RULER[1] - 4); c.lineTo(x, RULER[1]); }
+  for (let t = Math.floor(t0 / step) * step; t <= t1 + step; t += step) {
+    const x = Math.round(X(t)) + .5; c.moveTo(x, RULER[1] - 9); c.lineTo(x, RULER[1]);
+    const lbl = step < 1 ? fmtTime(t) : fmtTime(t).replace(/\.0$/, ''); c.fillText(lbl, x + 3, 3);
+  }
+  c.stroke();
+  const d = curDance();
+  if (!d) return;
+  // hudba
+  const m = music[d.id];
+  if (m) {
+    const mid = (MUS[0] + MUS[1]) / 2, amp = (MUS[1] - MUS[0]) / 2 - 2; const pk = m.peaks;
+    c.fillStyle = '#9c86e8';
+    const xEnd = Math.min(w, X(m.duration));
+    for (let px = Math.max(0, Math.floor(X(0))); px < xEnd; px++) {
+      const ta = (px + sl) / pps, tb = (px + 1 + sl) / pps;
+      let a = Math.floor(ta * pk.rate), b = Math.max(a + 1, Math.floor(tb * pk.rate)); b = Math.min(b, pk.data.length / 2);
+      let mn = 0, mx = 0; for (let i = a; i < b; i++) { if (pk.data[i * 2] < mn) mn = pk.data[i * 2]; if (pk.data[i * 2 + 1] > mx) mx = pk.data[i * 2 + 1]; }
+      const y0 = mid - mx * amp, y1 = mid - mn * amp; c.fillRect(px, y0, 1, Math.max(1, y1 - y0));
+    }
+    c.fillStyle = '#4b4266'; c.font = '600 11px system-ui, sans-serif'; c.fillText('🎵 ' + m.name, 6, MUS[0] + 3);
+  } else {
+    c.fillStyle = '#8a82a3'; c.font = '12px system-ui, sans-serif'; c.textBaseline = 'middle';
+    c.fillText(d.music ? `🎵 Hudba „${d.music.name}“ není načtená – klikněte nahoře na „🎵 Hudba“ a vyberte ji.` : '🎵 Zatím bez hudby – klikněte nahoře na „🎵 Hudba“.', 8, (MUS[0] + MUS[1]) / 2);
+  }
+  // bloky
+  const sch = schedule(d); const y = FRM[0], hh = FRM[1] - FRM[0];
+  if (d.offset > 0) { c.fillStyle = '#e7e3f2'; c.fillRect(X(0), y, d.offset * pps, hh); c.fillStyle = '#8a82a3'; c.font = '11px system-ui'; c.textBaseline = 'middle'; c.fillText('čeká se', X(0) + 4, y + hh / 2); }
+  for (const s of sch.segs) {
+    const x0 = X(s.t0), x1 = X(s.t0 + s.dur); if (x1 < 0 || x0 > w) continue;
+    const it = d.items[s.item]; const bw = x1 - x0;
+    c.save(); c.beginPath(); c.rect(x0, y, bw, hh); c.clip();
+    if (s.trans) {
+      c.fillStyle = '#e4def3'; c.fillRect(x0, y, bw, hh);
+      c.strokeStyle = '#cfc6e8'; c.lineWidth = 6; c.beginPath();
+      for (let k = x0 - hh; k < x1; k += 14) { c.moveTo(k, y + hh); c.lineTo(k + hh, y); } c.stroke();
+      c.fillStyle = '#4b4266'; c.font = '600 11px system-ui, sans-serif'; c.textBaseline = 'top'; c.fillText('↝ přechod', x0 + 5, y + 4);
+    } else {
+      const set = setById(it.setId); const hue = hashHue(it.setId);
+      c.fillStyle = `hsl(${hue} 60% ${s.k % 2 ? 72 : 64}%)`; c.fillRect(x0, y, bw, hh);
+      c.fillStyle = '#1f1a2e'; c.textBaseline = 'top';
+      if (s.k === 0) { c.font = '700 12px system-ui, sans-serif'; c.fillText(set ? set.name : '?', x0 + 5, y + 4); }
+      if (set && set.frames.length) { c.font = '11px system-ui, sans-serif'; c.fillText('#' + (s.k + 1), x0 + 5, y + (s.k === 0 ? 20 : 4)); }
+    }
+    if (bw > 38) { c.fillStyle = '#3d3556'; c.font = '10px system-ui, sans-serif'; c.textBaseline = 'bottom'; c.textAlign = 'right'; c.fillText(s.dur.toFixed(2).replace(/0$/, '') + ' s', x1 - 8, y + hh - 3); c.textAlign = 'left'; }
+    c.restore();
+    const isSel = (s.trans && DE.trans === s.item) || (DE.selSeg && DE.selSeg.item === s.item && DE.selSeg.k === s.k);
+    c.strokeStyle = isSel ? '#7c4dff' : 'rgba(30,20,50,.35)'; c.lineWidth = isSel ? 2.5 : 1;
+    c.strokeRect(x0 + .5, y + .5, bw - 1, hh - 1);
+    if (s.k === 0) { c.fillStyle = 'rgba(30,20,50,.6)'; c.fillRect(x0, y, 2, hh); }
+    c.fillStyle = 'rgba(30,20,50,.45)'; c.fillRect(x1 - 4, y + hh / 2 - 8, 2, 16);
+  }
+  // přehrávací hlava
+  const px = Math.round(X(DE.t)) + .5;
+  if (px >= 0 && px <= w) {
+    c.strokeStyle = '#e5484d'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(px, 0); c.lineTo(px, TLH); c.stroke();
+    c.fillStyle = '#e5484d'; c.beginPath(); c.moveTo(px - 6, 0); c.lineTo(px + 6, 0); c.lineTo(px, 8); c.closePath(); c.fill();
+  }
+}
+function tlHit(x, y) {
+  const d = curDance(); if (!d) return null;
+  const sl = TL.sc.scrollLeft, pps = ui.pps;
+  if (y >= FRM[0] && y <= FRM[1]) {
+    const sch = schedule(d);
+    for (const s of sch.segs) if (Math.abs(x - ((s.t0 + s.dur) * pps - sl)) <= 5) return { kind: 'resize', seg: s };
+    if (sch.segs.length && Math.abs(x - (sch.segs[0].t0 * pps - sl)) <= 5) return { kind: 'offset' };
+    for (const s of sch.segs) { const x0 = s.t0 * pps - sl, x1 = (s.t0 + s.dur) * pps - sl; if (x >= x0 && x <= x1) return { kind: 'block', seg: s }; }
+    return { kind: 'scrub' };
+  }
+  return { kind: 'scrub' };
+}
+function setSegDur(d, seg, v) {
+  const it = d.items[seg.item];
+  if (it.type === 'trans') it.dur = v; else { const durs = itemDurs(it); durs[seg.k] = v; it.durs = durs; }
+}
+const tlPt = e => { const r = TL.cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+TL.cv.addEventListener('pointerdown', e => {
+  const d = curDance(); if (!d || e.button > 0) return;
+  const [x, y] = tlPt(e); const h = tlHit(x, y); if (!h) return;
+  TL.cv.setPointerCapture(e.pointerId);
+  const t = (x + TL.sc.scrollLeft) / ui.pps;
+  if (h.kind === 'resize') { pause(); TL.drag = { kind: 'resize', seg: h.seg, orig: h.seg.dur, x0: x }; }
+  else if (h.kind === 'offset') { pause(); TL.drag = { kind: 'offset', orig: d.offset, x0: x }; }
+  else if (h.kind === 'block') {
+    DE.selSeg = { item: h.seg.item, k: h.seg.k };
+    if (h.seg.trans) editTrans(h.seg.item); else { leaveTrans(); seek(t); }
+    renderSeq(); drawTimeline();
+  } else { DE.selSeg = null; leaveTrans(); seek(t); TL.drag = { kind: 'scrub' }; }
+});
+TL.cv.addEventListener('pointermove', e => {
+  const [x, y] = tlPt(e); const d = curDance();
+  if (!TL.drag) { const h = tlHit(x, y); TL.cv.style.cursor = h && (h.kind === 'resize' || h.kind === 'offset') ? 'ew-resize' : h && h.kind === 'block' ? 'pointer' : 'text'; return; }
+  if (!d) return;
+  if (TL.drag.kind === 'scrub') seek((x + TL.sc.scrollLeft) / ui.pps);
+  else if (TL.drag.kind === 'resize') {
+    const v = Math.max(0.1, Math.round((TL.drag.orig + (x - TL.drag.x0) / ui.pps) * 20) / 20);
+    setSegDur(d, TL.drag.seg, v); TL.drag.changed = true; tlUpdateWidth(); drawTimeline(); danceStage.draw(); updateTimeLabel();
+  } else if (TL.drag.kind === 'offset') {
+    d.offset = Math.max(0, Math.round((TL.drag.orig + (x - TL.drag.x0) / ui.pps) * 20) / 20);
+    TL.drag.changed = true; $('#offsetInput').value = d.offset; tlUpdateWidth(); drawTimeline(); danceStage.draw(); updateTimeLabel();
+  }
+});
+const tlUp = () => { if (TL.drag?.changed) { commit(); renderSeq(); } TL.drag = null; };
+TL.cv.addEventListener('pointerup', tlUp); TL.cv.addEventListener('pointercancel', tlUp);
+TL.cv.addEventListener('dblclick', e => {
+  const d = curDance(); const [x, y] = tlPt(e); const h = tlHit(x, y);
+  if (!d || !h || (h.kind !== 'block' && h.kind !== 'resize')) return;
+  const v = prompt('Délka bloku v sekundách:', h.seg.dur.toFixed(2)); if (v == null) return;
+  const n = parseFloat(String(v).replace(',', '.')); if (!(n > 0)) return;
+  setSegDur(d, h.seg, Math.max(0.1, n)); commit(); renderDanceUI();
+});
+TL.sc.addEventListener('wheel', e => {
+  if (e.ctrlKey || e.metaKey) { e.preventDefault(); zoomAt(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - TL.sc.getBoundingClientRect().left); }
+  else if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { e.preventDefault(); TL.sc.scrollLeft += e.deltaY; }
+}, { passive: false });
+function zoomAt(f, x = TL.w / 2) {
+  const tc = (x + TL.sc.scrollLeft) / ui.pps;
+  ui.pps = clamp(ui.pps * f, 4, 400); saveUi(); tlUpdateWidth();
+  TL.sc.scrollLeft = tc * ui.pps - x; drawTimeline();
+}
+$('#zoomIn').onclick = () => zoomAt(1.3); $('#zoomOut').onclick = () => zoomAt(1 / 1.3);
+
+/* =====================================================================
+   TANEC – seznamy, sekvence, ovládání
+   ===================================================================== */
+function renderDanceUI() {
+  const d = curDance();
+  $('#danceList').innerHTML = state.dances.length ? state.dances.map(x => `
+    <li data-id="${x.id}" class="${x.id === DE.danceId ? 'active' : ''}"><span class="nm">${esc(x.name || 'bez názvu')}</span>
+    <span class="acts"><button class="mini" data-act="copy" title="Kopírovat">⧉</button><button class="mini danger" data-act="del" title="Smazat">✕</button></span></li>`).join('')
+    : '<li class="empty">Žádné tance.</li>';
+  $('#danceSetList').innerHTML = state.sets.length ? state.sets.map(s => `
+    <li data-id="${s.id}" title="Přidat na konec tance"><span class="sw" style="background:hsl(${hashHue(s.id)} 60% 62%)"></span><span class="nm">${esc(s.name)}</span><button class="mini primary">+</button></li>`).join('')
+    : '<li class="empty">Nejdřív vytvořte prvky v záložce „Prvky“.</li>';
+  $('#danceName').value = d ? d.name : ''; $('#danceName').disabled = !d;
+  $('#offsetInput').value = d ? d.offset : 0; $('#offsetInput').disabled = !d;
+  $('#exportBtn').disabled = !d || !d.items.length;
+  const m = d && music[d.id];
+  $('#musicName').textContent = m ? `${m.name} (${fmtTime(m.duration)})` : d?.music ? `⚠ „${d.music.name}“ – vyberte znovu` : 'bez hudby';
+  $('#followChk').checked = ui.follow;
+  renderTransBar(); renderSeq(); tlUpdateWidth(); drawTimeline(); danceStage.draw(); updateTimeLabel(); updatePlayBtn();
+}
+function renderSeq() {
+  const d = curDance(); const el = $('#seq');
+  if (!d) { el.innerHTML = ''; return; }
+  if (!d.items.length) { el.innerHTML = '<span class="muted">Sekvence je prázdná – přidejte prvky ze seznamu vlevo (tlačítko +).</span>'; return; }
+  const sch = schedule(d);
+  el.innerHTML = d.items.map((it, i) => {
+    const dur = sch.segs.filter(s => s.item === i).reduce((a, s) => a + s.dur, 0);
+    const set = it.type === 'set' ? setById(it.setId) : null;
+    const name = it.type === 'set' ? (set?.name || '?') : '↝ přechod';
+    const sel = (DE.trans === i || (DE.selSeg && DE.selSeg.item === i)) ? ' sel' : '';
+    let html = `<div class="chip ${it.type}${sel}" data-i="${i}" ${set ? `style="--c:hsl(${hashHue(it.setId)} 60% 70%)"` : ''} title="${it.type === 'trans' ? 'Klikněte pro úpravu přechodu' : 'Klikněte pro přesun na začátek prvku'}">
+      <span class="nm">${esc(name)}</span><span class="d">${dur.toFixed(1)} s</span>
+      <button class="mini" data-act="left" title="Posunout doleva">◀</button><button class="mini" data-act="right" title="Posunout doprava">▶</button><button class="mini" data-act="del" title="Odebrat z tance">✕</button></div>`;
+    const next = d.items[i + 1];
+    if (next) html += it.type === 'set' && next.type === 'set' ? `<button class="addtrans" data-act="trans" data-i="${i}" title="Vložit přechod mezi prvky">+ přechod</button>` : '<span class="arrow">→</span>';
+    return html;
+  }).join('');
+}
+$('#seq').addEventListener('click', e => {
+  const d = curDance(); if (!d) return;
+  const btn = e.target.closest('[data-act]'); const el = e.target.closest('[data-i]'); if (!el) return;
+  const i = +el.dataset.i; const act = btn?.dataset.act;
+  if (act === 'trans') {
+    leaveTrans(); d.items.splice(i + 1, 0, { id: uid(), type: 'trans', dur: DEFAULT_DUR, moves: {} }); commit(); renderDanceUI(); editTrans(i + 1); return;
+  }
+  if (act === 'left' || act === 'right' || act === 'del') {
+    leaveTrans();
+    if (act === 'del') d.items.splice(i, 1);
+    else { const j = act === 'left' ? i - 1 : i + 1; if (j < 0 || j >= d.items.length) return; [d.items[i], d.items[j]] = [d.items[j], d.items[i]]; }
+    DE.selSeg = null; commit(); renderDanceUI(); return;
+  }
+  const seg = schedule(d).segs.find(s => s.item === i); if (!seg) return;
+  DE.selSeg = { item: i, k: 0 };
+  if (d.items[i].type === 'trans') editTrans(i); else { leaveTrans(); seek(seg.t0 + 0.001); renderSeq(); }
+  const x = seg.t0 * ui.pps - TL.sc.scrollLeft; if (x < 0 || x > TL.w - 40) TL.sc.scrollLeft = seg.t0 * ui.pps - 40;
+});
+function createDance() {
+  const d = { id: uid(), name: 'Tanec ' + (state.dances.length + 1), music: null, offset: 0, items: [] };
+  state.dances.push(d); commit(); selectDance(d.id); return d;
+}
+function selectDance(id) { leaveTrans(); pause(); DE.danceId = id; DE.t = 0; DE.selSeg = null; attachAudio(); tryAutoLoadMusic(curDance()); TL.sc.scrollLeft = 0; renderDanceUI(); }
+$('#newDanceBtn').onclick = () => { createDance(); $('#danceName').focus(); $('#danceName').select(); };
+$('#danceList').addEventListener('click', e => {
+  const li = e.target.closest('li[data-id]'); if (!li) return; const id = li.dataset.id; const act = e.target.closest('[data-act]')?.dataset.act;
+  const d = state.dances.find(x => x.id === id);
+  if (act === 'copy') {
+    const c = clone(d); c.id = uid(); c.name = d.name + ' (kopie)'; c.items.forEach(it => it.id = uid());
+    if (music[d.id]) music[c.id] = music[d.id];
+    state.dances.splice(state.dances.indexOf(d) + 1, 0, c); commit(); selectDance(c.id);
+  } else if (act === 'del') {
+    if (!confirm(`Smazat tanec „${d.name}“?`)) return;
+    state.dances = state.dances.filter(x => x !== d); commit();
+    selectDance(DE.danceId === id ? state.dances[0]?.id || null : DE.danceId);
+  } else if (id !== DE.danceId) selectDance(id);
+});
+$('#danceSetList').addEventListener('click', e => {
+  const li = e.target.closest('li[data-id]'); if (!li) return;
+  const d = curDance() || createDance(); leaveTrans();
+  d.items.push({ id: uid(), type: 'set', setId: li.dataset.id, durs: [] }); commit(); renderDanceUI();
+});
+$('#danceName').addEventListener('input', e => { const d = curDance(); if (!d) return; d.name = e.target.value; const li = $(`#danceList li[data-id="${d.id}"] .nm`); if (li) li.textContent = d.name; });
+$('#danceName').addEventListener('change', () => commit());
+$('#offsetInput').addEventListener('change', e => { const d = curDance(); if (!d) return; d.offset = Math.max(0, parseFloat(e.target.value) || 0); commit(); renderDanceUI(); });
+
+/* =====================================================================
+   EXPORT VIDEA
+   ===================================================================== */
+function pickMime(withAudio) {
+  if (!window.MediaRecorder) return null;
+  const mp4 = withAudio ? ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a', 'video/mp4;codecs=avc1,opus', 'video/mp4'] : ['video/mp4;codecs=avc1.640028', 'video/mp4;codecs=avc1.42E01E', 'video/mp4;codecs=avc1', 'video/mp4'];
+  const webm = withAudio ? ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'] : ['video/webm;codecs=vp9', 'video/webm'];
+  return [...mp4, ...webm].find(t => MediaRecorder.isTypeSupported(t)) || null;
+}
+let exportJob = null;
+$('#exportBtn').onclick = () => {
+  const d = curDance(); if (!d || !d.items.length) return;
+  leaveTrans(); pause();
+  const m = music[d.id];
+  const mime = pickMime(!!m);
+  if (!mime) { alert('Tento prohlížeč neumí nahrávat video. Použijte prosím Google Chrome nebo Microsoft Edge.'); return; }
+  const isMp4 = mime.startsWith('video/mp4');
+  const total = schedule(d).end + 0.5;
+  const box = openModal(`<h3>Export videa – ${esc(d.name)}</h3>
+    <div class="formrow"><label>Rozlišení <select id="expRes"><option value="1280x720">1280 × 720 (HD)</option><option value="1920x1080">1920 × 1080 (Full HD)</option></select></label></div>
+    <p class="small">Délka: <b>${fmtTime(total)}</b> · Hudba: <b>${m ? esc(m.name) : (d.music ? '⚠ není načtená – video bude bez zvuku' : 'žádná')}</b><br>
+    Formát: <b>${isMp4 ? 'MP4' : 'WebM'}</b>${isMp4 ? '' : ' <span class="muted">(tento prohlížeč neumí MP4 – pro MP4 použijte nový Chrome nebo Edge)</span>'}</p>
+    <p class="muted small">Video se nahrává v reálném čase – trvá stejně dlouho jako tanec. Nechte toto okno otevřené a viditelné (nepřepínejte na jinou záložku).</p>
+    <progress id="expProg" value="0" max="1" hidden></progress><div id="expStatus" class="small"></div>
+    <div class="modal-actions"><button id="expCancel">Zavřít</button><button class="primary" id="expGo">▶ Spustit export</button></div>`);
+  box.querySelector('#expCancel').onclick = () => { if (exportJob) exportJob.cancelled = true; else closeModal(); };
+  box.querySelector('#expGo').onclick = async () => {
+    const [W, H] = box.querySelector('#expRes').value.split('x').map(Number);
+    box.querySelector('#expGo').disabled = true; box.querySelector('#expRes').disabled = true;
+    box.querySelector('#expCancel').textContent = 'Zrušit export';
+    const prog = box.querySelector('#expProg'); prog.hidden = false; const st = box.querySelector('#expStatus');
+    modalLocked = true; exportJob = { cancelled: false };
+    try {
+      const blob = await recordDance(d, W, H, mime, total, f => { prog.value = f; st.textContent = `Nahrávám… ${fmtTime(f * total)} / ${fmtTime(total)}`; }, exportJob);
+      if (blob) { download(blob, safeName(d.name) + (isMp4 ? '.mp4' : '.webm')); st.textContent = '✔ Hotovo – video se stahuje.'; }
+      else st.textContent = 'Export zrušen.';
+    } catch (err) { console.error(err); st.textContent = 'Chyba při exportu: ' + err.message; }
+    modalLocked = false; exportJob = null;
+    box.querySelector('#expCancel').textContent = 'Zavřít';
+  };
+};
+async function recordDance(d, W, H, mime, total, onProgress, job) {
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const ctx = cv.getContext('2d');
+  renderDance(ctx, W, H, d, 0);
+  const vstream = cv.captureStream(30);
+  const ac = new (window.AudioContext || window.webkitAudioContext)();
+  const dest = ac.createMediaStreamDestination();
+  const m = music[d.id]; let src = null;
+  if (m) { src = ac.createBufferSource(); src.buffer = m.buffer; src.connect(dest); }
+  const stream = new MediaStream([...vstream.getVideoTracks(), ...(src ? dest.stream.getAudioTracks() : [])]);
+  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: W >= 1920 ? 10e6 : 6e6, audioBitsPerSecond: 192000 });
+  const chunks = []; rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  const stopped = new Promise(r => rec.onstop = r);
+  await ac.resume();
+  rec.start(1000);
+  const t0 = ac.currentTime + 0.2;
+  if (src) src.start(t0);
+  await new Promise(resolve => {
+    const step = () => {
+      if (job.cancelled) return resolve();
+      const t = ac.currentTime - t0;
+      renderDance(ctx, W, H, d, Math.max(0, t)); onProgress(clamp(t / total, 0, 1));
+      if (t >= total) return resolve();
+      requestAnimationFrame(step);
+    };
+    step();
+  });
+  rec.stop(); try { src && src.stop(); } catch (e) {}
+  await stopped; vstream.getTracks().forEach(t => t.stop()); ac.close();
+  if (job.cancelled) return null;
+  return new Blob(chunks, { type: mime.split(';')[0] });
+}
+
+/* =====================================================================
+   Projekt – uložit / otevřít, klávesy, start
+   ===================================================================== */
+$('#undoBtn').onclick = undo; $('#redoBtn').onclick = redo;
+$('#saveFileBtn').onclick = () => {
+  leaveSetDraft();
+  const date = new Date().toISOString().slice(0, 10);
+  download(new Blob([JSON.stringify(state, null, 1)], { type: 'application/json' }), `choreografie-${date}.json`);
+};
+$('#openFileBtn').onclick = () => $('#openFileInput').click();
+$('#openFileInput').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try { const data = normalize(JSON.parse(await f.text())); state = data; commit(); afterStateReplaced(); }
+  catch (err) { alert('Soubor se nepodařilo otevřít: ' + err.message); }
+};
+document.addEventListener('keydown', e => {
+  const t = e.target; const inField = (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) && !['checkbox', 'color'].includes(t.type));
+  if (!$('#modal').hidden) { if (e.key === 'Escape') closeModal(); return; }
+  if ((e.ctrlKey || e.metaKey) && !inField) {
+    const k = e.key.toLowerCase();
+    if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+    else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); redo(); }
+  }
+  if (e.key === ' ' && !inField && activeTab === 'dance') { e.preventDefault(); if (t.tagName === 'BUTTON') t.blur(); togglePlay(); }
+});
+window.addEventListener('beforeunload', e => { if (SE.dirty || DE.dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+function renderAll() { renderPeople(); renderSets(); renderDanceUI(); }
+$('#snapChk').checked = ui.snap; $$('.namesChk').forEach(x => x.checked = ui.showNames);
+loadDraft(); renderAll(); updateUndoBtns();
+if (!state.groups.length && !state.sets.length) showTab('people');
+</script>
+</body>
+</html>
